@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Schedule
+{% endblock %}
+
+{% block content %}
+<h1>Add Classes</h1>
+    <form method="post" action="{% url 'polls:schedule_list' %}">  
+        {% csrf_token %}
+
+        <!-- <input type="text" name="CRN" placeholder="CRN"><br>  -->
+        <input type="text" name="Subject_Number" placeholder="Subject_Number"><br>
+        <input type="submit" value="find"></input>
+    </form>
+{% endblock %}
