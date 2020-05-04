@@ -7,6 +7,8 @@ app_name = 'polls'
 urlpatterns = [
     path('', views.HomePageView.as_view(), name=''),
     path('homepage', views.HomePageView.as_view(), name='homepage'),
+    path('schedule', views.schedule, name='schedule'),
+    path('schedule/list', views.find, name='schedule_list'),
     path('departments', views.DepartmentsListView.as_view(), name='departments'), 
     path('departments/create', views.DepartmentsCreateView.as_view(), name='departments_create'),
     path('departments/details/<slug:department_slug>', views.DepartmentsDetailView.as_view(), name='departments_detail'),
@@ -27,6 +29,7 @@ urlpatterns = [
     path('professor/create', views.ProfessorCreateView.as_view(), name='professor_create'),
     path('professor/delete/<slug:professor_slug>', views.ProfessorDeleteView.as_view(), name='professor_delete'),
     path('professor/update/<slug:professor_slug>', views.ProfessorUpdateView.as_view(), name='professor_update'),
+
     # path('rel', views.rel, name='rel'),
     # path('rel/insert', views.insert, name='insert'),
     # path('rel/find', views.find, name='find'),

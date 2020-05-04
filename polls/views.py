@@ -9,8 +9,8 @@ from .forms import DepartmentsForm, ClassesForm, SectionsForm, ProfessorForm
 # from rest_framework.views import APIView
 
 
-# def rel(request):
-#     return render(request, 'polls/rel.html')
+def schedule(request):
+    return render(request, 'polls/schedule.html')
 
 # def insert(request):
 #     if request.method == 'POST':
@@ -39,6 +39,13 @@ from .forms import DepartmentsForm, ClassesForm, SectionsForm, ProfessorForm
 #         return render(request, 'polls/relResults.html', {
 #             'departments': result,
 #         })
+
+
+# class ScheduleCreateView(generic.CreateView):
+    # model = Sections
+    # form_class = ScheduleForm
+    # template_name = 'polls/schedule.html'
+    # slug_url_kwarg = 'section_slug'
 
 # def delete(request):
 #     if request.method == 'POST':
@@ -99,6 +106,11 @@ class DepartmentsListView(generic.ListView):
     context_object_name = 'departments_list'
     template_name = 'polls/departments_list.html'
 
+class ScheduleListView(generic.ListView):
+    model = Sections
+    context_object_name = 'schedule_list'
+    template_name = 'polls/schedule_list.html'
+
 class DepartmentsCreateView(generic.CreateView):
     model = Departments
     form_class = DepartmentsForm
@@ -138,7 +150,8 @@ class DepartmentsDetailView(generic.DetailView):
         # Call the base implementation first to get a context
         context = super().get_context_data(**kwargs)
         # Add in a QuerySet of all the books
-        context['classes_list'] = Classes.objects.filter(departments__dept_id=self.object.dept_id)
+        context['classes_list'] = Classes.objects.raw('SELECT `classes`.`Subject_Number`, `classes`.`Title`, `classes`.`class_slug` FROM `classes` INNER JOIN `class_dept` ON (`classes`.`Subject_Number` = `class_dept`.`Subject_Number`) WHERE `class_dept`.`Dept_ID` = %s', [self.object.dept_id])
+        # Classes.objects.filter(departments__dept_id=self.object.dept_id)
         return context
 
 class DepartmentsDeleteView(generic.DeleteView):
@@ -172,8 +185,10 @@ class ClassesDetailView(generic.DetailView):
         # Call the base implementation first to get a context
         context = super().get_context_data(**kwargs)
         # Add in a QuerySet of all the books
-        context['sections_list'] = Sections.objects.filter(subject_number=self.object.subject_number)
-        context['departments_list'] = Departments.objects.filter(classes_contains__subject_number__startswith=self.object.subject_number)
+        context['sections_list'] = Sections.objects.raw('SELECT `sections`.`CRN`, `sections`.`Subject_Number`, `sections`.`Name`, `sections`.`CreditHours`, `sections`.`Section`, `sections`.`SectionType`, `sections`.`StartTime`, `sections`.`EndTime`, `sections`.`DayOfWeek`, `sections`.`GPA` FROM `sections` WHERE `sections`.`Subject_Number` = %s', [self.object.subject_number])
+        # Sections.objects.filter(subject_number=self.object.subject_number)
+        context['departments_list'] = Departments.objects.raw('SELECT `departments`.`Dept_ID`, `departments`.`Dept_Name` FROM `departments` INNER JOIN `class_dept` ON (`departments`.`Dept_ID` = `class_dept`.`Dept_ID`) WHERE `class_dept`.`Subject_Number` LIKE BINARY %s', [self.object.subject_number])
+        # Departments.objects.filter(classes_contains__subject_number__startswith=self.object.subject_number)
         return context
 
 class ClassesDeleteView(generic.DeleteView):
@@ -199,7 +214,8 @@ class SectionsListView(generic.ListView):
     context_object_name = 'sections_list'
     template_name = 'polls/sections_list.html'
     def get_queryset(self):
-        return Sections.objects.filter(gpa__isnull=False)
+        return Sections.objects.raw('SELECT `sections`.`CRN`, `sections`.`Subject_Number`, `sections`.`Name`, `sections`.`CreditHours`, `sections`.`Section`, `sections`.`SectionType`, `sections`.`StartTime`, `sections`.`EndTime`, `sections`.`DayOfWeek`, `sections`.`GPA` FROM `sections` WHERE `sections`.`GPA` IS NOT NULL')
+        # Sections.objects.filter(gpa__isnull=False)
 
 class SectionsCreateView(generic.CreateView):
     model = Sections
@@ -217,7 +233,8 @@ class SectionsDetailView(generic.DetailView):
         # Call the base implementation first to get a context
         context = super().get_context_data(**kwargs)
         # Add in a QuerySet of all the books
-        context['professors_list'] = Professor.objects.filter(sections_teaches__crn__startswith=self.object.crn)
+        context['professors_list'] = Professor.objects.raw('SELECT `professor`.`NetID`, `professor`.`Name`, `professor`.`Email` FROM `professor` INNER JOIN `teaches` ON (`professor`.`NetID` = `teaches`.`NetID`) WHERE `teaches`.`CRN` LIKE BINARY %s', [self.object.crn])
+        # Professor.objects.filter(sections_teaches__crn__startswith=self.object.crn)
         return context
 
 class SectionsDeleteView(generic.DeleteView):
@@ -268,7 +285,8 @@ class ProfessorDetailView(generic.DetailView):
         # Call the base implementation first to get a context
         context = super().get_context_data(**kwargs)
         # Add in a QuerySet of all the books
-        context['sections_list'] = Sections.objects.filter(professor__netid=self.object.netid)
+        context['sections_list'] = Sections.objects.raw('SELECT `sections`.`CRN`, `sections`.`Subject_Number`, `sections`.`Name`, `sections`.`CreditHours`, `sections`.`Section`, `sections`.`SectionType`, `sections`.`StartTime`, `sections`.`EndTime`, `sections`.`DayOfWeek`, `sections`.`GPA` FROM `sections` INNER JOIN `teaches` ON (`sections`.`CRN` = `teaches`.`CRN`) WHERE `teaches`.`NetID` = %s', [self.object.netid])
+        # Sections.objects.filter(professor__netid=self.object.netid)
         return context
 
 class ProfessorDeleteView(generic.DeleteView):
@@ -276,38 +294,38 @@ class ProfessorDeleteView(generic.DeleteView):
     pk_url_kwarg = 'professor_slug'
     template_name = 'polls/professor_delete.html'
     success_url = reverse_lazy('polls:professor')
-# class IndexView(generic.ListView):
-#     template_name = 'polls/index.html'
-#     context_object_name = 'latest_question_list'
 
+class ScheduleListView(generic.ListView):
+    template_name = 'polls/schedule_find.html'
+    context_object_name = 'schedule_list'
+
+    def get_queryset(self):
+        return Sections.objects.filter(subject_number=get_subject_number)
+
+
+# class ScheduleListView(generic.ListView):
+#     model = Sections
+
+#     context_object_name = 'schedule_list'
+#     template_name = 'polls/schedule_list.html'
 #     def get_queryset(self):
-#         """Return the last five published questions."""
-#         return Question.objects.order_by('-pub_date')[:5]
+#         return Sections.objects.filter(subject_number=request.POST.get('Subject_Number',None))
+#         # Sections.objects.filter(gpa__isnull=False)
 
+def find(request):
+    get_subject_number = request.POST.get('Subject_Number',None)
+    if request.method == 'POST':
+        get_subject_number = request.POST.get('Subject_Number',None)
+    try:
+        result = Sections.objects.filter(subject_number=get_subject_number).all() # object to update
+    except Sections.DoesNotExist:
+        return render(request, 'polls/schedule_list.html', {
+            'Not available': get_subject_number,
+            'error_message': "No such item.",
+        })
+    else:
+        return render(request, 'polls/schedule_list.html', 
+            {"result":result}
 
-# class DetailView(generic.DetailView):
-#     model = Question
-#     template_name = 'polls/detail.html'
+       )
 
-
-# class ResultsView(generic.DetailView):
-#     model = Question
-#     template_name = 'polls/results.html'
-
-# def vote(request, question_id):
-#     question = get_object_or_404(Question, pk=question_id)
-#     try:
-#         selected_choice = question.choice_set.get(pk=request.POST['choice'])
-#     except (KeyError, Choice.DoesNotExist):
-#         # Redisplay the question voting form.
-#         return render(request, 'polls/detail.html', {
-#             'question': question,
-#             'error_message': "You didn't select a choice.",
-#         })
-#     else:
-#         selected_choice.votes += 1
-#         selected_choice.save()
-#         # Always return an HttpResponseRedirect after successfully dealing
-#         # with POST data. This prevents data from being posted twice if a
-#         # department hits the Back button.
-#         return HttpResponseRedirect(reverse('polls:results', args=(question.id,)))

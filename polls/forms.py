@@ -22,13 +22,26 @@ class DepartmentsForm(forms.ModelForm):
                 'max_length': _("This department's name is too long."),
             }
         }
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-    #     self.helper = FormHelper()
-    #     self.helper.form_method = 'post'
-    #     self.helper.add_input(Submit('submit', 'Save', css_class = 'btn-primary'))
-    #     self.helper.add_input(Button('cancel', 'Cancel', css_class='btn-danger',
-    #                          href="{% url 'departments' %}"))
+
+class ScheduleForm(forms.Form):
+    subject_number = forms.CharField(label="Subject Number")
+    crn = forms.CharField(label = 'CRN')
+    def __init__(self, *args, **kwargs):
+        super(ExampleForm, self).__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_id = 'id-exampleForm'
+        self.helper.form_method = 'post'
+        self.helper.form_action = 'submit_survey'
+
+        self.helper.add_input(Submit('find', 'Find', css_clas = 'btn-primary'))
+
+# def __init__(self, *args, **kwargs):
+#     super().__init__(*args, **kwargs)
+#     self.helper = FormHelper()
+#     self.helper.form_method = 'post'
+#     self.helper.add_input(Submit('submit', 'Save', css_class = 'btn-primary'))
+#     self.helper.add_input(Button('cancel', 'Cancel', css_class='btn-danger',
+#                             href="{% url 'schedule' %}"))
 
 class ClassesForm(forms.ModelForm):
     class Meta:
@@ -162,3 +175,4 @@ class ProfessorForm(forms.ModelForm):
                 'max_length': _("This professor's email is too long."),
             }
         }
+

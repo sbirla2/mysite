@@ -17,9 +17,9 @@ from django.utils.text import slugify
 class Classes(models.Model):
     subject_number = models.CharField(db_column='Subject_Number', primary_key=True, max_length=10)  # Field name made lowercase.
     title = models.CharField(db_column='Title', max_length=100, blank=True, null=True)  # Field name made lowercase.
-    class_slug = models.SlugField(unique=True)
+    class_slug = models.SlugField(unique=False, null=True)
     def get_absolute_url(self):
-        return reverse('polls:classes_detail', kwargs={'class_slug': self.class_slug})
+        return reverse('polls:classes_detail', kwargs={'subject': self.class_slug})
     def save(self, *args, **kwargs):
         value = self.subject_number
         self.class_slug = slugify(value, allow_unicode=True)

@@ -39,7 +39,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework_mongoengine',
     'crispy_forms',
 ]
 
@@ -85,9 +84,9 @@ DATABASES = {
     # }
     'default': {
         'ENGINE': 'django.db.backends.mysql',   # 数据库引擎
-        'NAME': 'mydatabase',  # 数据库名，先前创建的
-        'USER': 'django',     # 用户名，可以自己创建用户
-        'PASSWORD': '19971028',  # 密码
+        'NAME': 'new_bill',  # 数据库名，先前创建的
+        'USER': 'new_bill',     # 用户名，可以自己创建用户
+        'PASSWORD': '1234',  # 密码
         'HOST': 'localhost',  # mysql服务所在的主机ip
         'PORT': '3306',         # mysql服务端口
     }
