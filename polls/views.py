@@ -14,25 +14,9 @@ import numpy as np
 # from rest_framework.views import APIView
 
 
-def schedule(request):
-    # get_CRN = request.read('CRN')
-    # print(request)
-    # if request.method == 'GET':
-    #     get_CRN = request.read('CRN')
+def sched(request):
     
-    # try:
-    #     result = get_CRN # object to update
-    # except Sections.DoesNotExist:
-    #     return render(request, 'polls/schedule.html', {
-    #         'Not available': get_CRN,
-    #         'error_message': "No classes are added yet.",
-    #     })
-    # else:
-    #     return render(request, 'polls/schedule.html', 
-    #         {"crn":get_CRN}
-
-    #    )
-    return render(request, 'polls/schedule.html')
+    return render(request, 'polls/sched.html')
 
 # def insert(request):
 #     if request.method == 'POST':
@@ -237,11 +221,7 @@ class SectionsListView(generic.ListView):
     template_name = 'polls/sections_list.html'
     def get_queryset(self):
         return Sections.objects.raw('SELECT `sections`.`CRN`, `sections`.`Subject_Number`, `sections`.`Name`, `sections`.`CreditHours`, `sections`.`Section`, `sections`.`SectionType`, `sections`.`StartTime`, `sections`.`EndTime`, `sections`.`DayOfWeek`, `sections`.`GPA` FROM `sections` WHERE `sections`.`GPA` IS NOT NULL')
-<<<<<<< HEAD
-        # return Sections.objects.filters(subject_number='CS 241')
-=======
         # Sections.objects.filter(gpa__isnull=False)
->>>>>>> upstream/master
 
 class SectionsCreateView(generic.CreateView):
     model = Sections
@@ -339,9 +319,44 @@ class ScheduleListView(generic.ListView):
 #         return Sections.objects.filter(subject_number=request.POST.get('Subject_Number',None))
 #         # Sections.objects.filter(gpa__isnull=False)
 
-def add_to_schedule(request, section):
-    schedule = Sections.objects.all()[0]
-    
+
+def schedule_view(request):
+    try:
+        the_id = request.session['schedule_id']
+    except:
+        the_id = None
+    if the_id:
+        schedule = Schedule.objects.get(id=the_id)
+        context = {"schedule":schedule}
+    else:
+        empyt_message = "Your cart is empyt, please keep shopping"
+        context = {"empty":True, "empty_message":empyt_message}
+
+    template = "polls/schedule_view.html"
+    return render(request, template, context)
+
+
+def add_to_schedule(request, section_slug):
+    request.session.set_expiry(3)
+    try:
+        the_id = request.session['schedule_id'] 
+    except:
+        new_schedule = Schedule()
+        new_schedule.save()
+        request.session['schedule_id'] = new_schedule.id
+        the_id = new_schedule.id
+    schedule = Schedule.objects.get(id=the_id)
+
+    try:
+        section = Sections.objects.get(crn = section_slug)
+    except Sections.DoesNotExist:
+        pass
+    except:
+        pass
+    if not section in schedule.sections.all():
+        schedule.sections.add(section)
+    print(schedule.sections.all())
+    return HttpResponseRedirect(reverse("polls:schedule_list"))
 
 def find(request):
     get_subject_number_1 = request.POST.get('Subject_Number_1',None)
@@ -349,24 +364,25 @@ def find(request):
     get_subject_number_3 = request.POST.get('Subject_Number_3',None)
     get_subject_number_4 = request.POST.get('Subject_Number_4',None)
     get_subject_number_5 = request.POST.get('Subject_Number_5',None)
-    try:
-        subject_1_lec = Sections.objects.filter(Q(subject_number=get_subject_number_1) )
-        subject_2_lec = Sections.objects.filter(Q(subject_number=get_subject_number_2))
-        subject_3_lec = Sections.objects.filter(Q(subject_number=get_subject_number_3) )
-        subject_4_lec = Sections.objects.filter(Q(subject_number=get_subject_number_4) )
-        subject_5_lec = Sections.objects.filter(Q(subject_number=get_subject_number_5) )
-        result = subject_1_lec.union(subject_2_lec,subject_3_lec,subject_4_lec,subject_5_lec)
-        # check_conflicts(result)
-        
-    except isinstance(Sections.objects.none(), EmptyQuerySet):
-        return render(request, 'polls/schedule_list.html', {
-            'error_message': "No such item.",
+
+    subject_1_lec = Sections.objects.filter(Q(subject_number=get_subject_number_1) )
+    subject_2_lec = Sections.objects.filter(Q(subject_number=get_subject_number_2))
+    subject_3_lec = Sections.objects.filter(Q(subject_number=get_subject_number_3) )
+    subject_4_lec = Sections.objects.filter(Q(subject_number=get_subject_number_4) )
+    subject_5_lec = Sections.objects.filter(Q(subject_number=get_subject_number_5) )
+    
+    result = subject_1_lec.union(subject_2_lec,subject_3_lec,subject_4_lec,subject_5_lec)
+    check_bool = check_conflicts(result)
+    
+    if check_bool == False:
+        return render(request, 'polls/schedule_deny.html', {
+            "error_message": "There is a time conflict, try again.",
         })
     else:
         return render(request, 'polls/schedule_list.html', 
-            {"result":result}
+        {"result":result}
 
-       )
+    )
 
 def check_conflicts(queryset):
     all_starts_dict = create_dict_times(queryset)
@@ -378,18 +394,18 @@ def check_conflicts(queryset):
             for k in range(start,end+1):
                 time_table[i][k] = 1
 
-            
+    time_table = np.array(time_table)
 
-
-
-
+    conflict_sums = np.sum(time_table, axis = 0)
+    print(all(i < 2 for i in conflict_sums))
+    return all(i < 2 for i in conflict_sums)
 
 def create_dict_times(queryset):
     all_starts_dict = {}
     temp = queryset.values('crn','starttime','endtime','dayofweek')
     for i in range(len(temp.all())):
         all_starts_dict[int(temp[i]['crn'])] =  crn_dict_values(temp[i]['starttime'], temp[i]['endtime'], temp[i]['dayofweek'])
-    print(all_starts_dict)
+    # print(all_starts_dict)
     return(all_starts_dict)
 
 
@@ -417,3 +433,5 @@ def numerize_times(str):
     elif str[-2] == "P" and str[:2] == '12':
         result = 72 + math.floor(int(str[colon+1:colon+3]) / 10)
     return(result)
+
+
