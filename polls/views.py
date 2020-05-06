@@ -237,7 +237,11 @@ class SectionsListView(generic.ListView):
     template_name = 'polls/sections_list.html'
     def get_queryset(self):
         return Sections.objects.raw('SELECT `sections`.`CRN`, `sections`.`Subject_Number`, `sections`.`Name`, `sections`.`CreditHours`, `sections`.`Section`, `sections`.`SectionType`, `sections`.`StartTime`, `sections`.`EndTime`, `sections`.`DayOfWeek`, `sections`.`GPA` FROM `sections` WHERE `sections`.`GPA` IS NOT NULL')
+<<<<<<< HEAD
         # return Sections.objects.filters(subject_number='CS 241')
+=======
+        # Sections.objects.filter(gpa__isnull=False)
+>>>>>>> upstream/master
 
 class SectionsCreateView(generic.CreateView):
     model = Sections
