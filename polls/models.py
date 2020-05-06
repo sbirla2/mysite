@@ -4,7 +4,11 @@ from django.db import models
 from django.utils import timezone
 from django.urls import reverse
 from django.utils.text import slugify
+from django.conf import settings
+from django.contrib.auth import get_user_model
+# from django.db.models.signal import post_save
 
+User = get_user_model()
 # Create your models here.
 
 # class User(models.Model):
@@ -95,6 +99,22 @@ class Teaches(models.Model):
         managed = True
         db_table = 'teaches'
 
+class Schedule(models.Model):
+    class_sections = models.ManyToManyField(Sections, null=True, blank=True)
+    average_gpa = models.DecimalField(max_digits=2313, decimal_places=2, default=0.00)
+
+class Profile(models.Model):
+    student = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete = models.CASCADE )
+    sections = models.ManyToManyField(Sections, blank = True)
+
+    def __str__(self):
+        return self.student.studentname
+
+def post_save_profile_create(sender, instance, created, *args, **kwargs):
+    if created:
+        Profile.objects.get_or_create(user = instance)
+
+# post_save.connect(post_save_profile_create, sender = settings.AUTH_USER_MODEL)
 # class Question(models.Model):
 #     question_text = models.CharField(max_length=200)
 #     pub_date = models.DateTimeField('date published')

@@ -5,11 +5,33 @@ from django.views import generic
 from django.db.models import Count
 from .models import Departments, Classes, Sections, Professor
 from .forms import DepartmentsForm, ClassesForm, SectionsForm, ProfessorForm
+from django.db.models.query import EmptyQuerySet
+import math
+from django.db.models import Q
+import numpy as np
+
 
 # from rest_framework.views import APIView
 
 
 def schedule(request):
+    # get_CRN = request.read('CRN')
+    # print(request)
+    # if request.method == 'GET':
+    #     get_CRN = request.read('CRN')
+    
+    # try:
+    #     result = get_CRN # object to update
+    # except Sections.DoesNotExist:
+    #     return render(request, 'polls/schedule.html', {
+    #         'Not available': get_CRN,
+    #         'error_message': "No classes are added yet.",
+    #     })
+    # else:
+    #     return render(request, 'polls/schedule.html', 
+    #         {"crn":get_CRN}
+
+    #    )
     return render(request, 'polls/schedule.html')
 
 # def insert(request):
@@ -178,9 +200,9 @@ class ClassesDetailView(generic.DetailView):
     context_object_name = 'class'
     slug_url_kwarg = 'class_slug'
     slug_field = 'class_slug'
-    # pk_url_kwarg = 'class_slug'
-    # def get_object(self, queryset=None):
-        # return Classes.objects.get(class_slug=self.slug_url_kwarg)
+    pk_url_kwarg = 'class_slug'
+    def get_object(self, queryset=None):
+        return Classes.objects.get(class_slug=self.slug_url_kwarg)
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super().get_context_data(**kwargs)
@@ -215,7 +237,7 @@ class SectionsListView(generic.ListView):
     template_name = 'polls/sections_list.html'
     def get_queryset(self):
         return Sections.objects.raw('SELECT `sections`.`CRN`, `sections`.`Subject_Number`, `sections`.`Name`, `sections`.`CreditHours`, `sections`.`Section`, `sections`.`SectionType`, `sections`.`StartTime`, `sections`.`EndTime`, `sections`.`DayOfWeek`, `sections`.`GPA` FROM `sections` WHERE `sections`.`GPA` IS NOT NULL')
-        # Sections.objects.filter(gpa__isnull=False)
+        # return Sections.objects.filters(subject_number='CS 241')
 
 class SectionsCreateView(generic.CreateView):
     model = Sections
@@ -296,11 +318,12 @@ class ProfessorDeleteView(generic.DeleteView):
     success_url = reverse_lazy('polls:professor')
 
 class ScheduleListView(generic.ListView):
+    model = Sections
     template_name = 'polls/schedule_find.html'
-    context_object_name = 'schedule_list'
+    context_object_name = 'result'
 
     def get_queryset(self):
-        return Sections.objects.filter(subject_number=get_subject_number)
+        return Sections.objects.filter(subject_number="CS 241")
 
 
 # class ScheduleListView(generic.ListView):
@@ -312,15 +335,27 @@ class ScheduleListView(generic.ListView):
 #         return Sections.objects.filter(subject_number=request.POST.get('Subject_Number',None))
 #         # Sections.objects.filter(gpa__isnull=False)
 
+def add_to_schedule(request, section):
+    schedule = Sections.objects.all()[0]
+    
+
 def find(request):
-    get_subject_number = request.POST.get('Subject_Number',None)
-    if request.method == 'POST':
-        get_subject_number = request.POST.get('Subject_Number',None)
+    get_subject_number_1 = request.POST.get('Subject_Number_1',None)
+    get_subject_number_2 = request.POST.get('Subject_Number_2',None)
+    get_subject_number_3 = request.POST.get('Subject_Number_3',None)
+    get_subject_number_4 = request.POST.get('Subject_Number_4',None)
+    get_subject_number_5 = request.POST.get('Subject_Number_5',None)
     try:
-        result = Sections.objects.filter(subject_number=get_subject_number).all() # object to update
-    except Sections.DoesNotExist:
+        subject_1_lec = Sections.objects.filter(Q(subject_number=get_subject_number_1) )
+        subject_2_lec = Sections.objects.filter(Q(subject_number=get_subject_number_2))
+        subject_3_lec = Sections.objects.filter(Q(subject_number=get_subject_number_3) )
+        subject_4_lec = Sections.objects.filter(Q(subject_number=get_subject_number_4) )
+        subject_5_lec = Sections.objects.filter(Q(subject_number=get_subject_number_5) )
+        result = subject_1_lec.union(subject_2_lec,subject_3_lec,subject_4_lec,subject_5_lec)
+        # check_conflicts(result)
+        
+    except isinstance(Sections.objects.none(), EmptyQuerySet):
         return render(request, 'polls/schedule_list.html', {
-            'Not available': get_subject_number,
             'error_message': "No such item.",
         })
     else:
@@ -329,3 +364,52 @@ def find(request):
 
        )
 
+def check_conflicts(queryset):
+    all_starts_dict = create_dict_times(queryset)
+    time_table = np.zeros((len(all_starts_dict.keys()) , 720))
+    for i,crn in enumerate(all_starts_dict.keys()):
+        for j in range(len(all_starts_dict[crn])):
+            start = all_starts_dict[crn][j][0] 
+            end = all_starts_dict[crn][j][1]
+            for k in range(start,end+1):
+                time_table[i][k] = 1
+
+            
+
+
+
+
+
+def create_dict_times(queryset):
+    all_starts_dict = {}
+    temp = queryset.values('crn','starttime','endtime','dayofweek')
+    for i in range(len(temp.all())):
+        all_starts_dict[int(temp[i]['crn'])] =  crn_dict_values(temp[i]['starttime'], temp[i]['endtime'], temp[i]['dayofweek'])
+    print(all_starts_dict)
+    return(all_starts_dict)
+
+
+def crn_dict_values(starttime, endtime, dayofweek):
+    a = []
+    day_dict = {'M':0, 'T':144, 'W': 288, 'R':432, 'F':576}
+    i = 0
+
+    while i < (len(dayofweek)):
+        
+        a.append([numerize_times(starttime) + day_dict[dayofweek[i]], numerize_times(endtime) + day_dict[dayofweek[i] ]])
+        i+=1
+
+    return a
+
+def numerize_times(str):
+    colon = str.find(':')
+    result = 0
+    if str[-2] == "P" and str[:2] != '12':
+        result = 72 + int(str[:colon]) * 6 + math.floor(int(str[colon+1:colon+3]) / 10)
+    elif str[-2] == "A" and str[:2] != '12':
+        result = int(str[:colon]) * 6 + math.floor(int(str[colon+1:colon+3]) / 10)
+    elif str[-2] == "A" and str[:2] == '12':
+        result = 0 + math.floor(int(str[colon+1:colon+3]) / 10)
+    elif str[-2] == "P" and str[:2] == '12':
+        result = 72 + math.floor(int(str[colon+1:colon+3]) / 10)
+    return(result)

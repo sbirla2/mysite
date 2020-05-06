@@ -6,11 +6,21 @@
 
 {% block content %}
 <h1>Add Classes</h1>
+<table class="table">
     <form method="post" action="{% url 'polls:schedule_list' %}">  
         {% csrf_token %}
 
         <!-- <input type="text" name="CRN" placeholder="CRN"><br>  -->
-        <input type="text" name="Subject_Number" placeholder="Subject_Number"><br>
+        <input type="text" name="Subject_Number_1" placeholder="Subject_Number_1"><br>
+        <input type="text" name="Subject_Number_2" placeholder="Subject_Number_2"><br>
+        <input type="text" name="Subject_Number_3" placeholder="Subject_Number_3"><br>
+        <input type="text" name="Subject_Number_4" placeholder="Subject_Number_4"><br>
+        <input type="text" name="Subject_Number_5" placeholder="Subject_Number_5"><br>
         <input type="submit" value="find"></input>
     </form>
+</table>
+
+    
+
 {% endblock %}
+

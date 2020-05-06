@@ -151,6 +151,62 @@ class SectionsForm(forms.ModelForm):
         self.save_m2m()
         return instance
 
+class ScheduleForm(forms.ModelForm):
+    class Meta:
+        model = Sections
+        fields = ('crn', 'subject_number', 'name', 'credithours', 'sectiontype', 'starttime', 'endtime', 'dayofweek', 'gpa')
+        labels = {
+            'crn': _('CRN'),
+            'subject_number': _('Subject Number'),
+            'name': _('Name'),
+            'credithours': _('Credit Hours'),
+            'sectiontype': _('Section Type'),
+            'starttime': _('Start Time'),
+            'endtime': _('End Time'),
+            'dayofweek': _('Day of Week'),
+            'gpa': _('GPA'),
+        }
+        help_texts = {
+            'crn': _('Less than 5 digits'),
+            'subject_number': _('Choose one from classes'),
+            'name': _('Less than 5 characters'),
+            'credithours': _('eg: 3 hours./3 OR 4 hours./0 TO 16 hours.'),
+            'starttime': _('eg: 1:00 PM'),
+            'endttime': _('eg: 1:50 PM'),
+            'dayofweek': _('eg: MWF'),
+        }
+    professor = forms.ModelMultipleChoiceField(queryset=Professor.objects.all(), widget = forms.CheckboxSelectMultiple)
+    def __init__(self, *args, **kwargs):
+        # Only in case we build the form from an instance
+        # (otherwise, 'toppings' list should be empty)
+        if kwargs.get('instance'):
+            # We get the 'initial' keyword argument or initialize it
+            # as a dict if it didn't exist.
+            initial = kwargs.setdefault('initial', {})
+            # The widget for a ModelMultipleChoiceField expects
+            # a list of primary key for the selected data.
+            initial['professor'] = [t.pk for t in kwargs['instance'].professor_set.all()]
+        forms.ModelForm.__init__(self, *args, **kwargs)
+
+    def save(self, commit=True):
+        # Get the unsaved Pizza instance
+        instance = forms.ModelForm.save(self, False)
+        # Prepare a 'save_m2m' method for the form,
+        old_save_m2m = self.save_m2m
+        def save_m2m():
+            old_save_m2m()
+            # This is where we actually link the pizza with toppings
+            instance.professor_set.clear()
+            for professor in self.cleaned_data['professor']:
+                instance.departments_set.add(professor)
+        self.save_m2m = save_m2m
+        # Do we need to save all changes now?
+        # Just like this
+        # if commit:
+        instance.save()
+        self.save_m2m()
+        return instance
+
 class ProfessorForm(forms.ModelForm):
     class Meta:
         model = Professor

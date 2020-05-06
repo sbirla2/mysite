@@ -60,7 +60,8 @@
                                         <td>{{section.gpa}}</td>
                                         <td>
                                             <div class="btn-group ml-auto" role="group" aria-label="Basic example">
-                                                <a class="btn btn-success" href="{% url 'polls:sections_update' section_slug=section.crn%}" role="button">Update</a>
+                                                <!-- have to change url on this to polls:schedule -->
+                                                <a class="btn btn-success" href="{% url 'polls:sections_update' section_slug=section.crn%}" role="button">Add</a>
                                                 <a class="btn btn-danger" href="{% url 'polls:sections_delete' section_slug=section.crn%}" role="button">Delete</a>
                                             </div>
                                         </td>
